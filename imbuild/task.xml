@@ -1,7 +1,7 @@
 <project name="task" default="default" basedir="." xmlns:imdbproj="http://www.intermine.org/ns/im-task-proj/1">
 
   <dirname property="task.xml.basedir" file="${ant.file.task}"/>
-  
+
   <!--
      |
      | Import this file and call the target -init-task-xml to have access
@@ -26,13 +26,27 @@
      |    ${build.dir}
      |
    -->
-  
+
+  <!-- ABSTRACT TARGETS -->
+
+  <target name="default">
+    <!-- consuming projects should implement this target -->
+  </target>
+
+  <target name="-init-project">
+    <!-- Consuming projects should implement this target -->
+  </target>
+
+  <target name="-pre-init">
+      <!-- Consuming projects should implement this target. -->
+  </target>
+
   <target name="-check-task-availability">
     <available property="antlib-os-available" resource="org/intermine/task/antlib-os.xml" classpathref="task.class.path"/>
     <available property="antlib-int-available" resource="org/intermine/task/antlib-int.xml" classpathref="task.class.path"/>
     <available property="antlib-web-available" resource="org/intermine/web/task/antlib-web.xml" classpathref="task.class.path"/>
   </target>
-  
+
   <target name="-set-release-suffix-exists" if="release">
     <property name="release-suffix" value=".${release}"/>
   </target>
@@ -42,7 +56,7 @@
     <property name="release-suffix" value=""/>
   </target>
 
-  <target name="-set-release-suffix" 
+  <target name="-set-release-suffix"
           depends="-set-release-suffix-not-exists, -set-release-suffix-exists"/>
 
   <target name="-init-check-for-intermine-properties"
@@ -57,7 +71,7 @@
                property="have.intermine.properties.dir" />
   </target>
 
-  <target name="-check-for-intermine-properties-file" depends="-init-project" 
+  <target name="-check-for-intermine-properties-file" depends="-init-project"
           unless="intermine.properties.file">
     <fail unless="temporary.webapp.project">
 You need to set the intermine.properties.file property in your
@@ -65,15 +79,15 @@ project.properties.
     </fail>
   </target>
 
-  <target name="-check-for-intermine-properties-dir" 
+  <target name="-check-for-intermine-properties-dir"
           depends="-check-for-intermine-properties-file, -init-check-for-intermine-properties-dir"
           unless="have.intermine.properties.dir">
     <fail unless="temporary.webapp.project">
-Couldn't find ${user.home}/.intermine directory.  
+Couldn't find ${user.home}/.intermine directory.
     </fail>
   </target>
 
-  <target name="-check-for-intermine-properties" 
+  <target name="-check-for-intermine-properties"
           depends="-check-for-intermine-properties-file, -check-for-intermine-properties-dir, -init-check-for-intermine-properties"
           unless="have.intermine.properties.file">
     <fail unless="temporary.webapp.project">
@@ -83,18 +97,18 @@ specify a valid release suffix with '-Drelease=xxx'.
     </fail>
   </target>
 
-  <target name="-init-properties" 
+  <target name="-init-properties"
           depends="-check-for-intermine-properties"
           unless="temporary.webapp.project">
     <!-- depends (indirectly) on -pre-define-task-classpath so that build.task.dir is set
          and the directory is created -->
 
     <!-- Copy intermine.properties onto the classpath -->
-    <copy file="${user.home}/.intermine/${intermine.properties.file}${release-suffix}" 
+    <copy file="${user.home}/.intermine/${intermine.properties.file}${release-suffix}"
           tofile="${build.task.dir}/intermine.properties"
           overwrite="true"/>
     <!-- Copy default.intermine.properties onto the classpath -->
-    <copy file="${default.intermine.properties.file}" 
+    <copy file="${default.intermine.properties.file}"
           tofile="${build.task.dir}/default.intermine.properties"
           overwrite="true"/>
 
@@ -133,22 +147,22 @@ Couldn't find ${build.properties.file}
                                               -load-os-tasks,
                                               -load-int-tasks,
                                               -load-web-tasks"/>
-  
+
   <target name="-load-os-tasks" if="antlib-os-available">
     <echo>Loading objectstore tasks</echo>
     <taskdef resource="org/intermine/task/antlib-os.xml" classpathref="task.class.path"/>
   </target>
-  
+
   <target name="-load-int-tasks" if="antlib-int-available">
     <echo>Loading integration tasks</echo>
     <taskdef resource="org/intermine/task/antlib-int.xml" classpathref="task.class.path"/>
   </target>
-  
+
   <target name="-load-web-tasks" if="antlib-web-available">
     <echo>Loading web tasks</echo>
     <taskdef resource="org/intermine/web/task/antlib-web.xml" classpathref="task.class.path"/>
   </target>
-  
+
   <target name="-pre-define-task-classpath" depends="-pre-init">
     <!-- depend on -pre-init to set build.dir -->
      <property name="build.task.dir" location="${build.dir}/main"/>
@@ -158,7 +172,7 @@ Couldn't find ${build.properties.file}
      <mkdir dir="${build.tmp.dir}"/>
      <copy file="${task.xml.basedir}/task.log4j.properties" toFile="${build.task.dir}/log4j.properties"/>
   </target>
-  
+
   <target name="-define-task-classpath">
     <!-- Override to alter the classpath created -->
     <path id="task.class.path">
@@ -171,9 +185,9 @@ Couldn't find ${build.properties.file}
                                          -define-task-classpath,
                                          -load-task-taskdefs,
                                          -init-macrodef-build-db"/>
-  
+
   <!-- MACRODEF -->
-  
+
   <target name="-init-macrodef-build-db">
     <macrodef name="build-db" uri="http://www.intermine.org/ns/im-task-proj/1">
       <attribute name="osname"/>
