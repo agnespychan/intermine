@@ -24,6 +24,7 @@ import org.json.JSONObject;
  */
 public class JWTVerifier
 {
+    private static final String EMAIL_CLAIM = "http://wso2.org/claims/emailaddress";
     private final Properties options;
     private final KeyStore keyStore;
 
@@ -59,13 +60,21 @@ public class JWTVerifier
             throw new VerificationError("Could not parse token: " + e.getMessage());
         }
 
-        if (expiry < System.currentTimeMillis()) {
-            throw new VerificationError("This token has expired.");
+        // expiry is, as per spec, the number of seconds since the epoch.
+        long secondsSinceExpiry = (System.currentTimeMillis() / 1000L) - expiry;
+        if (secondsSinceExpiry >= 0) {
+            throw new VerificationError(
+                    String.format("This token expired %d seconds ago", secondsSinceExpiry));
         }
-        if (!verifySignature(header, claims, pieces[0] + "." + pieces[1], decoder.decode(pieces[2]))) {
+
+        if (!verifySignature(
+                header,
+                claims,
+                pieces[0] + "." + pieces[1],
+                decoder.decode(pieces[2]))) {
             throw new VerificationError("Could not verify signature.");
         }
-        return new Verification(issuer, getPrincipal(claims));
+        return new Verification(issuer, getPrincipal(claims), getEmail(claims));
     }
 
     /* Private API */
@@ -84,6 +93,19 @@ public class JWTVerifier
             }
         } catch (JSONException e) {
             throw new VerificationError("Could not read principal: " + e.getMessage());
+        }
+    }
+
+    private String getEmail(JSONObject claims) throws VerificationError {
+        try {
+            String issuer = claims.getString("iss");
+            String emailClaim = options.getProperty("jwt.key.email." + issuer, EMAIL_CLAIM);
+            if (claims.has(emailClaim)) {
+                return claims.getString(emailClaim);
+            }
+            return null;
+        } catch (JSONException e) {
+            throw new VerificationError("Could not read email: " + e.getMessage());
         }
     }
 
@@ -154,11 +176,12 @@ public class JWTVerifier
      */
     public static final class Verification
     {
-        private final String identity, issuer;
+        private final String identity, issuer, email;
 
-        private Verification(String issuer, String identity) {
+        private Verification(String issuer, String identity, String email) {
             this.issuer = issuer;
             this.identity = identity;
+            this.email = email;
         }
 
         /** @return the name of the issuer **/
@@ -169,6 +192,11 @@ public class JWTVerifier
         /** @return the identity of the claimant **/
         public String getIdentity() {
             return identity;
+        }
+
+        /** @return the email of the claimant **/
+        public String getEmail() {
+            return email;
         }
     }
 
